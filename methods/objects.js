@@ -1,114 +1,108 @@
-const { getCollectionName } = require('./firebase');
+const {
+    createDoc, getDoc, updateDoc, getDocList, deleteDoc, downloadDocList,
+    createDatabaseObject, updateDatabaseObject, getDatabaseObject, getDatabaseObjectList, deleteDatabaseObject,
+    createSubscriptionObject, updateSubscriptionObject, getSubscriptionObject, getSubscriptionObjectList, deleteSubscriptionObject,
+} = require('./firebase');
+
 const { getObjectListConditions } = require('./privileges')
 
 // OK
-module.exports.getObject = async function getObject(db, objectId) {
-    try {
-        const dataType = objectId['dataType'];
-        const collectionName = getCollectionName(dataType);
+module.exports.getObject = async function getObject(db, subscription, objectId) {
 
-        const docRef = db.collection(collectionName).doc(objectId.id);
-        const doc = await docRef.get();
-        return doc.data();
-    } catch (error) {
-        console.error("Error get document: ", error);
-        return null;
+    switch (objectId.dataType) {
+        case 'XTSDatabase':
+            responseObject.items = await getDatabaseObject(db, objectId)
+            break;
+        case 'XTSSubscription':
+            responseObject.items = await getSubscriptionObject(db, objectId)
+            break;
+        default:
+            responseObject.items = await getDoc(subscription, objectId)
+            break;
     }
+    // const doc = await getDoc(subscription, objectId)
+    return doc;
 }
 
 // OK
-module.exports.createObject = async function createObject(db, object) {
-    try {
-        const dataType = object['_type'];
-        const collectionName = getCollectionName(dataType);
-        const docRef = db.collection(collectionName).doc(object.objectId.id);
-        await docRef.set(object);
-        const doc = await docRef.get();
-        console.log('doc', doc.data());
-        return doc.data();
-    } catch (error) {
-        console.error("Error creating document: ", error);
-        return null;
+module.exports.createObject = async function createObject(db, subscription, object) {
+
+    let doc
+    switch (object._type) {
+        case 'XTSDatabase':
+            doc = await createDatabaseObject(db, object)
+            break;
+        case 'XTSSubscription':
+            doc = await createSubscriptionObject(db, object)
+            break;
+        default:
+            doc = await createDoc(subscription, object)
+            break;
     }
+    // const doc = await createDoc(subscription, object);
+    return doc;
 }
 
 // OK
-module.exports.updateObject = async function updateObject(db, object) {
-    try {
-        const dataType = object['_type'];
-        const collectionName = getCollectionName(dataType);
-        console.log('collectionName', collectionName);
-        console.log('object.objectId.id', object.objectId.id);
+module.exports.updateObject = async function updateObject(db, subscription, object) {
 
-        const docRef = db.collection(collectionName).doc(object.objectId.id);
-        let doc = docRef.get()
-        if (doc.exists) {
-            await docRef.update(object);
-        } else {
-            await docRef.set(object);
-        }
-
-        // await docRef.update(object);
-        doc = await docRef.get();
-        return doc.data();
-    } catch (error) {
-        console.error("Error update document: ", error);
-        return null;
+    let doc
+    switch (object._type) {
+        case 'XTSDatabase':
+            doc = await updateDatabaseObject(db, object)
+            break;
+        case 'XTSSubscription':
+            doc = await updateSubscriptionObject(db, object)
+            break;
+        default:
+            doc = await updateDoc(subscription, object)
+            break;
     }
+    // const doc = await updateDoc(subscription, object);
+    return doc;
 }
 
 // OK
-module.exports.deleteObject = async function deleteObject(db, objectId) {
-    try {
-        const dataType = objectId['dataType'];
-        const collectionName = getCollectionName(dataType);
-        console.log('collectionName', collectionName);
-        const docRef = db.collection(collectionName).doc(objectId.id);
-        await docRef.delete();
-        return objectId;
-    } catch (error) {
-        console.error("Error delete document: ", error);
-        return null;
+module.exports.deleteObject = async function deleteObject(db, subscription, objectId) {
+
+    let doc
+    switch (objectId.dataType) {
+        case 'XTSDatabase':
+            doc = await deleteDatabaseObject(db, objectId)
+            break;
+        case 'XTSSubscription':
+            doc = await deleteSubscriptionObject(db, objectId)
+            break;
+        default:
+            doc = await deleteDoc(subscription, objectId)
+            break;
     }
+    // const doc = await deleteDoc(subscription, objectId);
+    return doc;
 }
 
-// Cần thêm điều kiện
-module.exports.getObjectList = async function getObjectList(db, requestObject, claims) {
-    try {
-        // const privilege = getObjectListConditions(requestObject.dataType)
-        const collectionName = getCollectionName(requestObject.dataType);
-        const querySnapshot = await db.collection(collectionName).get();
+// Ok
+module.exports.getObjectList = async function getObjectList(db, subscription, requestObject, claims) {
 
-        const items = [];
-        querySnapshot.forEach(doc => {
-            const item = {
-                canHaveChildren: null,
-                isFolder: null,
-                parentId: null,
-                object: doc.data(),
-            }
-            items.push(item);
-        });
-        return items;
-    } catch (error) {
-        console.error("Error get document: ", error);
-        return null;
+    let docList
+    switch (requestObject.dataType) {
+        case 'XTSDatabase':
+            docList = await getDatabaseObjectList(db, requestObject)
+            break;
+        case 'XTSSubscription':
+            docList = await getSubscriptionObjectList(db, requestObject)
+            break;
+        default:
+            docList = await getDocList(subscription, requestObject, claims)
+            break;
     }
+    // const docList = await getDocList(subscription, requestObject, claims);
+    return docList;
 }
 
 // OK
-module.exports.downloadObjectList = async function downloadObjectList(db, dataType) {
-    try {
-        const collectionName = getCollectionName(dataType);
-        const querySnapshot = await db.collection(collectionName).get();
+module.exports.downloadObjectList = async function downloadObjectList(subscription, dataType) {
 
-        const objects = [];
-        querySnapshot.forEach(doc => {
-            objects.push(doc.data());
-        });
-        return objects;
-    } catch (error) {
-        console.error("Error get document: ", error);
-        return null;
-    }
+    const doc = await downloadDocList(subscription, requestObject, claims);
+    return doc;
 }

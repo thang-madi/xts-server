@@ -20,3 +20,29 @@ module.exports.XTSCreateCustomTokenResponse = class XTSCreateCustomTokenResponse
         super('XTSCreateCustomTokenResponse')
     }
 }
+
+// OK
+module.exports.XTSDatabase = class XTSDatabase extends XTSObject {
+
+    description = ''
+    name = ''
+    dbId = ''
+    parameters = {}
+
+    constructor() {
+        super('XTSDatabase')
+    }
+}
+
+// OK
+module.exports.XTSSubscription = class XTSSubscription extends XTSObject {
+
+    description = ''
+    database = new XTSObjectId('XTSDatabase')
+    owner = new XTSObjectId('XTSUser')
+
+    constructor() {
+        super('XTSSubscription')
+    }
+}
+

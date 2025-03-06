@@ -1,11 +1,12 @@
 const { getCollectionName } = require('./firebase.js');
 
-module.exports.getRecordSet = async function getRecordSet(db, dataType, filter) {
+module.exports.getRecordSet = async function getRecordSet(subscription, dataType, filter) {
     const records = [];
-    const collectionName = getCollectionName(dataType);
+    const dbName = subscription.database.name
+    const collectionName = getCollectionName(dataType, dbName);
 
     try {
-        const collection = db.collection(collectionName);
+        const collection = subscription.collection(collectionName);
         let query = collection;
 
         for (const key in filter) {
@@ -44,18 +45,20 @@ module.exports.getRecordSet = async function getRecordSet(db, dataType, filter) 
     return recordSet;
 }
 
-// Cần thêm trường hợp chỉ xóa bỏ các record trùng recordKey
-module.exports.updateRecordSet = async function updateRecordSet(db, recordSet) {
+// Hiện đang xử lý trường hợp Replace
+// Cần thêm trường hợp Append, nghĩa là chỉ xóa bỏ các record trùng recordKey
+module.exports.updateRecordSet = async function updateRecordSet(subscription, recordSet) {
     const dataType = recordSet.dataType;
     const filter = recordSet.filter;
     const records = recordSet.records;
 
     const updatedRecords = [];
-    const collectionName = getCollectionName(dataType);
+    const dbName = subscription.database.name
+    const collectionName = getCollectionName(dataType, dbName);
     console.log('collectionName', collectionName);
 
     try {
-        const collection = db.collection(collectionName);
+        const collection = subscription.collection(collectionName);
         let query = collection;
 
         for (const key in filter) {
@@ -87,7 +90,7 @@ module.exports.updateRecordSet = async function updateRecordSet(db, recordSet) {
         const querySnapshot = await query.get();
         // console.log('Number of documents:', querySnapshot.size); // Đoạn mã để in ra số lượng phần tử trong querySnapshot
 
-        const batch = db.batch();
+        const batch = subscription.batch();
         querySnapshot.forEach(doc => {
             // console.log('doc.id', doc.id);
             const docRef = collection.doc(doc.id);

@@ -59,17 +59,17 @@ async function getExternalAccount(db, externalAccountData) {
 module.exports.getExternalAccount = getExternalAccount
 
 // OK
-exports.createCustomToken = async function createCustomToken(db, requestObject) {
+exports.createCustomToken = async function createCustomToken(subscription, requestObject) {
 
     // Lấy uid của người dùng mặc định
     const uid = configProduction.uid
     const { externalAccountData } = requestObject
     // console.log('requestObject', requestObject)
-    const externalAccount = await getExternalAccount(db, externalAccountData);
+    const externalAccount = await getExternalAccount(subscription, externalAccountData);
     // console.log('externalAccount 2', externalAccount);
 
     // const db = admin.firestore()
-    const userProfile = await getDocumentById(db, 'userProfiles', externalAccount?.user?.id);
+    const userProfile = await getDocumentById(subscription, 'userProfiles', externalAccount?.user?.id);
     console.log('userProfile 1', userProfile)
 
     const customClaims = {
