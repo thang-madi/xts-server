@@ -10,6 +10,10 @@ const cacheCollectionName = 'cacheXTS';
 
 async function getParameter(db, paramName) {
 
+    // Các tham số
+    //      databases: danh sách các database
+    //      subscriptions: danh sách các subscription
+
     // Kiểm tra giá trị trong cache
     let paramValue = cacheXTS.get(paramName);
     if (!paramValue) {

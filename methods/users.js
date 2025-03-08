@@ -1,7 +1,7 @@
 
 const admin = require("firebase-admin");
 
-const { getDocumentById } = require('./firebase')
+const { getDocumentById } = require('./firebase-docs')
 const { configProduction } = require('../commons/constants');
 const { createXTSObject } = require('../data-objects/common-use')
 

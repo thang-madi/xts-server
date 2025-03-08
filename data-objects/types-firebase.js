@@ -39,7 +39,7 @@ module.exports.XTSSubscription = class XTSSubscription extends XTSObject {
 
     description = ''
     database = new XTSObjectId('XTSDatabase')
-    owner = new XTSObjectId('XTSUser')
+    subscriber = new XTSObjectId('XTSUser')
 
     constructor() {
         super('XTSSubscription')

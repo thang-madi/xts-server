@@ -1,6 +1,6 @@
-const { getCollectionName } = require('./firebase.js');
+const { getCollectionName } = require('./firebase-docs.js');
 
-module.exports.getRecordSet = async function getRecordSet(subscription, dataType, filter) {
+module.exports.getRecordSet = async function getRecordSet(db, subscription, dataType, filter) {
     const records = [];
     const dbName = subscription.database.name
     const collectionName = getCollectionName(dataType, dbName);
@@ -47,7 +47,7 @@ module.exports.getRecordSet = async function getRecordSet(subscription, dataType
 
 // Hiện đang xử lý trường hợp Replace
 // Cần thêm trường hợp Append, nghĩa là chỉ xóa bỏ các record trùng recordKey
-module.exports.updateRecordSet = async function updateRecordSet(subscription, recordSet) {
+module.exports.updateRecordSet = async function updateRecordSet(db, subscription, recordSet) {
     const dataType = recordSet.dataType;
     const filter = recordSet.filter;
     const records = recordSet.records;

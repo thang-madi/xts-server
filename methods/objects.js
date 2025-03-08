@@ -1,8 +1,11 @@
 const {
     createDoc, getDoc, updateDoc, getDocList, deleteDoc, downloadDocList,
+} = require('./firebase-docs');
+
+const {
     createDatabaseObject, updateDatabaseObject, getDatabaseObject, getDatabaseObjectList, deleteDatabaseObject,
     createSubscriptionObject, updateSubscriptionObject, getSubscriptionObject, getSubscriptionObjectList, deleteSubscriptionObject,
-} = require('./firebase');
+} = require('./firebase-db');
 
 const { getObjectListConditions } = require('./privileges')
 
@@ -17,7 +20,7 @@ module.exports.getObject = async function getObject(db, subscription, objectId) 
             responseObject.items = await getSubscriptionObject(db, objectId)
             break;
         default:
-            responseObject.items = await getDoc(subscription, objectId)
+            responseObject.items = await getDoc(db, subscription, objectId)
             break;
     }
     // const doc = await getDoc(subscription, objectId)
@@ -33,10 +36,11 @@ module.exports.createObject = async function createObject(db, subscription, obje
             doc = await createDatabaseObject(db, object)
             break;
         case 'XTSSubscription':
+            console.log('createSubscriptionObject: ', object)
             doc = await createSubscriptionObject(db, object)
             break;
         default:
-            doc = await createDoc(subscription, object)
+            doc = await createDoc(db, subscription, object)
             break;
     }
     // const doc = await createDoc(subscription, object);
@@ -55,7 +59,7 @@ module.exports.updateObject = async function updateObject(db, subscription, obje
             doc = await updateSubscriptionObject(db, object)
             break;
         default:
-            doc = await updateDoc(subscription, object)
+            doc = await updateDoc(db, subscription, object)
             break;
     }
     // const doc = await updateDoc(subscription, object);
@@ -74,7 +78,7 @@ module.exports.deleteObject = async function deleteObject(db, subscription, obje
             doc = await deleteSubscriptionObject(db, objectId)
             break;
         default:
-            doc = await deleteDoc(subscription, objectId)
+            doc = await deleteDoc(db, subscription, objectId)
             break;
     }
     // const doc = await deleteDoc(subscription, objectId);
@@ -93,7 +97,7 @@ module.exports.getObjectList = async function getObjectList(db, subscription, re
             docList = await getSubscriptionObjectList(db, requestObject)
             break;
         default:
-            docList = await getDocList(subscription, requestObject, claims)
+            docList = await getDocList(db, subscription, requestObject, claims)
             break;
     }
     // const docList = await getDocList(subscription, requestObject, claims);
@@ -103,6 +107,6 @@ module.exports.getObjectList = async function getObjectList(db, subscription, re
 // OK
 module.exports.downloadObjectList = async function downloadObjectList(subscription, dataType) {
 
-    const doc = await downloadDocList(subscription, requestObject, claims);
+    const doc = await downloadDocList(db, subscription, dataType);
     return doc;
 }

@@ -27,7 +27,7 @@ const { getRecordSet, updateRecordSet } = require("./methods/records");
 const { createCustomToken } = require("./methods/users");
 const { getFile } = require("./methods/files");
 const { getObjectListBE, callBackendServer } = require("./methods/backend");
-const { getSubscriptionRef, getDatabaseObjectList, getSubscriptionObjectList } = require("./methods/firebase");
+const { getSubscriptionRef, getDatabaseObjectList, getSubscriptionObjectList } = require("./methods/firebase-db");
 
 // Main
 const serviceAccountId = 'firebase-adminsdk-fbsvc@fir-b73c8.iam.gserviceaccount.com'
@@ -170,19 +170,19 @@ exports.execute = onRequest(async (request, response) => {
                 requestObject = JSON.parse(requestObject)
             }
 
-            if (idToken) {
-                admin.auth().verifyIdToken(idToken)
-                    .then((decodedToken) => {
-                        claims = decodedToken
-                    })
-                    .catch((error) => {
-                        response.send('Error: wrong idToken: ' + error)
-                        return
-                    });
-            } else if (requestObject['_type'] !== 'XTSCreateCustomTokenRequest') {
-                response.send('Error: absence idToken')
-                return
-            }
+            // if (idToken) {
+            //     admin.auth().verifyIdToken(idToken)
+            //         .then((decodedToken) => {
+            //             claims = decodedToken
+            //         })
+            //         .catch((error) => {
+            //             response.send('Error: wrong idToken: ' + error)
+            //             return
+            //         });
+            // } else if (requestObject['_type'] !== 'XTSCreateCustomTokenRequest') {
+            //     response.send('Error: absence idToken')
+            //     return
+            // }
 
             console.log('claims', claims)
 
@@ -220,12 +220,14 @@ async function requestProccessing(requestObject, params, claims) {
     let responseObject = null
 
     const db = admin.firestore()
+    // console.log('db', db)
     const subscriptionId = {
         _type: 'XTSObjectId',
         dataType: 'XTSSubscription',
-        id: requestObject.dbId,
+        id: requestObject._dbId || ''
     }
     const subscription = await getSubscriptionRef(db, subscriptionId)
+    console.log('subscription', subscription)
 
     // Nếu như request được gọi từ BE Server thì bỏ qua khối này.
     // Nếu gọi từ Client thì trước tiên sẽ gọi đến BE Server
@@ -386,14 +388,14 @@ async function requestProccessing(requestObject, params, claims) {
         case 'XTSGetRecordSetRequest':
 
             responseObject = createXTSObject('XTSGetRecordSetResponse')
-            responseObject.recordSet = await getRecordSet(subscription, requestObject.dataType, requestObject.filter)
+            responseObject.recordSet = await getRecordSet(db, subscription, requestObject.dataType, requestObject.filter)
             break;
 
         case 'XTSUpdateRecordSetRequest':
 
             if (params.serverCall) {
                 responseObject = createXTSObject('XTSUpdateRecordSetResponse')
-                responseObject.recordSet = await updateRecordSet(subscription, requestObject.recordSet)
+                responseObject.recordSet = await updateRecordSet(db, subscription, requestObject.recordSet)
             } else if (responseObject) {
                 await updateRecordSet(subscription, responseObject.recordSet)
             }
