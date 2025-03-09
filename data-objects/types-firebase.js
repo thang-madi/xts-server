@@ -35,6 +35,19 @@ module.exports.XTSDatabase = class XTSDatabase extends XTSObject {
 }
 
 // OK
+module.exports.XTSDataSection = class XTSDataSection extends XTSObject {
+
+    description = ''
+    database = new XTSObjectId('XTSDatabase')
+    subscriber = new XTSObjectId('XTSUser')
+    company = new XTSObjectId('XTSCompany')
+
+    constructor() {
+        super('XTSDataSection')
+    }
+}
+
+// OK
 module.exports.XTSSubscription = class XTSSubscription extends XTSObject {
 
     description = ''

@@ -1,24 +1,34 @@
 
 const { DocumentReference } = require("firebase/firestore");
+const { XTSIndividual, XTSCart } = require("../data-objects/types-application");
 
 // const { createDoc, updateDoc, getDoc, deleteDoc, getDocList } = require("./firebase-methods");
 
 // Interface
 
 // OK
-function getCollectionName(dataType, dbName) {
+function getNameItem(dataType, dbName) {
 
     let mapCollection = {};
 
     const mapCommon = {
-        'XTSDatabase': 'databases',
-        'XTSSubscription': 'subscriptions',
+        XTSDatabase: {
+            collectionName: 'databases',
+            isCommon: null
+        },
+        XTSSubscription: {
+            collectionName: 'subscriptions',
+            isCommon: null
+        },
+        XTSDataSection: {
+            collectionName: 'dataSections',
+            isCommon: null
+        },
         // 'XTSExternalAccount': 'externalAccounts',
-        'XTSUser': 'users',
-        'XTSUserSession': 'userSessions', // Xem lại có cần không
+        // XTSUser: 'users',
+        // 'XTSUserSession': 'userSessions', // Xem lại có cần không
     };
-
-    console.log('dbName', dbName);
+    // console.log('dbName', dbName);
     switch (dbName) {
         case 'Retail':
             mapCollection = mapCollectionName_Retail();
@@ -35,36 +45,124 @@ function getCollectionName(dataType, dbName) {
     console.log('dataType', dataType);
     return mapCollection[dataType];
 }
-module.exports.getCollectionName = getCollectionName;
+module.exports.getNameItem = getNameItem;
 
 // OK
 function mapCollectionName_Retail() {
     return {
         // Catalog
-        'XTSExternalAccount': 'externalAccounts',
-
-        'XTSCounterparty': 'counterparties',
-        'XTSStructuralUnit': 'structuralUnits',
-        'XTSEmployee': 'employees',
-        'XTSCurrency': 'currencies',
-        'XTSIndividual': 'individuals',
-        'XTSCompany': 'companies',
-        'XTSProduct': 'products',
-        'XTSMeasurementUnit': 'measurementUnits',
-        'XTSUOMClassifier': 'uomClassifiers',
+        XTSExternalAccount: {
+            collectionName: 'externalAccounts',
+            isCommon: false,
+        },
+        XTSCounterparty: {
+            collectionName: 'counterparties',
+            isCommon: false,
+        },
+        XTSStructuralUnit: {
+            collectionName: 'structuralUnits',
+            isCommon: false,
+        },
+        XTSEmployee: {
+            collectionName: 'employees',
+            isCommon: false,
+        },
+        XTSCurrency: {
+            collectionName: 'currencies',
+            isCommon: true,
+        },
+        XTSPriceKind: {
+            collectionName: 'priceKinds',
+            isCommon: true,
+        },
+        XTSIndividual: {
+            collectionName: 'individuals',
+            isCommon: true,
+        },
+        XTSCompany: {
+            collectionName: 'companies',
+            isCommon: false,
+        },
+        XTSProduct: {
+            collectionName: 'products',
+            isCommon: false,
+        },
+        XTSMeasurementUnit: {
+            collectionName: 'measurementUnits',
+            isCommon: true,
+        },
+        XTSUOMClassifier: {
+            collectionName: 'uomClassifiers',
+            isCommon: true,
+        },
 
         // Information register
-        'XTSCart': 'carts',
+        XTSCart: {
+            collectionName: 'carts',
+            isCommon: false,
+        },
 
         // Document
-        'XTSOrder': 'salesOrders',
-        'XTSCashReceipt': 'cashReceipts',
-        'XTSPaymentReceipt': 'paymentReceipts',
-        'XTSPriceRegistration': 'priceRegistrations',
-        'XTSSalesOrder': 'salesOrders',
-        'XTSSalesInvoice': 'salesInvoices',
-        'XTSSupplierInvoice': 'supplierInvoices',
+        XTSOrder: {
+            collectionName: 'salesOrders',
+            isCommon: false,
+        },
+        XTSCashReceipt: {
+            collectionName: 'cashReceipts',
+            isCommon: false,
+        },
+        XTSPaymentReceipt: {
+            collectionName: 'paymentReceipts',
+            isCommon: false,
+        },
+        XTSPriceRegistration: {
+            collectionName: 'priceRegistrations',
+            isCommon: false,
+        },
+        XTSSalesOrder: {
+            collectionName: 'salesOrders',
+            isCommon: false,
+
+        },
+        XTSSalesInvoice: {
+            collectionName: 'salesInvoices',
+            isCommon: false,
+        },
+
+        XTSSupplierInvoice: {
+            collectionName: 'supplierInvoices',
+            isCommon: false,
+        },
     };
+}
+
+// 
+async function getParentRef(db, dataSection, nameItem) {
+
+    if (nameItem.isCommon === null) {
+        return db;
+    } else if (nameItem.isCommon === false) {
+        return dataSection;
+    } else {
+        try {
+            const dataSectionSnapshot = await dataSection.get();
+            const commonSection = dataSectionSnapshot.data().commonSection;
+            // console.log('dataSection.data()', dataSection.data());
+            console.log('commonSection', commonSection);
+            if (commonSection) {
+                const commonSectionRef = db.collection('dataSections').doc(commonSection.id);
+                const commonSectionSnapshot = await commonSectionRef.get();
+                if (commonSectionSnapshot.exists) {
+                    return commonSectionRef;
+                } else {
+                    return null;
+                }
+            }
+        } catch (error) {
+            console.error("Error get dataSection: ", error);
+            return null;
+        }
+    }
 }
 
 // OK
@@ -96,14 +194,16 @@ module.exports.getDocumentById = async function getDocumentById(db, collectionNa
 ///////////////////////////////////////////
 // Documents
 
-function choiceParent(dataType, db, parent) {
-    const rootDataTypes = [
-        'XTSDatabase',
-        'XTSSubscription',
-        'XTSLogItem',
-    ];
-    return rootDataTypes.includes(dataType) && db || parent;
-}
+// Sau này sẽ bỏ đi
+// function choiceParent(dataType, db, parent) {
+//     const rootDataTypes = [
+//         'XTSDatabase',
+//         'XTSSubscription',
+//         'XTSDataSection',
+//         'XTSLogItem',
+//     ];
+//     return rootDataTypes.includes(dataType) && db || parent;
+// }
 
 // OK
 module.exports.getDoc = async function getDoc(db, parent, objectId) {
@@ -120,18 +220,28 @@ module.exports.getDoc = async function getDoc(db, parent, objectId) {
     }
 
     const dataType = objectId['dataType'];
-    const parentRef = choiceParent(dataType, db, parent);
+    // const parentRef = choiceParent(dataType, db, parent);
 
-    let parentDoc = null;
+    // let parentDoc = null;
+    // if (parent) {
+    //     parentDoc = await parent.get();
+    // }
+    // const dbName = parentDoc?.database?.name;
+
+    let dbName = null
     if (parent) {
-        parentDoc = await parent.get();
+        let parentDoc = await parent.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
     }
-    const dbName = parentDoc?.database?.name;
+    const nameItem = getNameItem(dataType, dbName);
+    const parentRef = await getParentRef(db, parent, nameItem);
+    console.log('nameItem', nameItem);
 
     try {
-        const collectionName = getCollectionName(dataType, dbName);
-        console.log('collectionName', collectionName);
-        const docRef = parentRef.collection(collectionName).doc(objectId.id);
+        const docRef = parentRef.collection(nameItem.collectionName).doc(objectId.id);
         const docSnapshot = await docRef.get();
 
         if (!docSnapshot.exists) {
@@ -159,29 +269,22 @@ module.exports.createDoc = async function createDoc(db, parent, object) {
         return null;
     }
 
-    const dataType = object.objectId['dataType'];
-    const parentRef = choiceParent(dataType, db, parent);
+    // const parentRef = choiceParent(dataType, db, parent);
 
-    let parentDoc = null;
+    const dataType = object.objectId['dataType'];
+    let dbName = null
     if (parent) {
-        parentDoc = await parent.get();
+        let parentDoc = await parent.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
     }
-    const dbName = parentDoc?.database?.name;
+    const nameItem = getNameItem(dataType, dbName);
+    const parentRef = await getParentRef(db, parent, nameItem);
 
     try {
-        // const dataType = object['_type'];
-        // let dbName = null;
-        // console.log('parent', parent);
-        // if (parent instanceof DocumentReference) {
-        //     // Đây là 1 subscription
-        //     const subscription = await parent.get();
-        //     dbName = subscription?.database.name;
-        // }
-        // console.log('dbName', dbName);
-        const collectionName = getCollectionName(dataType, dbName);
-        // console.log('collectionName', collectionName);
-        // console.log('object.objectId', object.objectId);
-        const docRef = parentRef.collection(collectionName).doc(object.objectId.id);
+        const docRef = parentRef.collection(nameItem.collectionName).doc(object.objectId.id);
         await docRef.set(object);
         const docSnapshot = await docRef.get();
         console.log('doc', docSnapshot.data());
@@ -206,27 +309,26 @@ module.exports.updateDoc = async function updateDoc(db, parent, object) {
         return null;
     }
 
-    const dataType = object.objectId['dataType'];
-    const parentRef = choiceParent(dataType, db, parent);
+    // const parentRef = choiceParent(dataType, db, parent);
 
-    let parentDoc = null;
+    const dataType = object.objectId['dataType'];
+    let dbName = null
     if (parent) {
-        parentDoc = await parent.get();
-        parentDoc = parentDoc.data();
+        let parentDoc = await parent.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
     }
-    const dbName = parentDoc?.database?.name;
-    console.log('parentDoc', parentDoc)
+    const nameItem = getNameItem(dataType, dbName);
+    console.log('dataType', dataType);
+    console.log('dbName', dbName);
+    console.log('nameItem', nameItem);
+    console.log('object.objectId.id', object.objectId.id);
+    const parentRef = await getParentRef(db, parent, nameItem);
 
     try {
-        // const dataType = object['_type'];
-        // const dbName = parent?.database.name;
-        const collectionName = getCollectionName(dataType, dbName);
-        console.log('dataType', dataType);
-        console.log('dbName', dbName);
-        console.log('collectionName', collectionName);
-        console.log('object.objectId.id', object.objectId.id);
-
-        const docRef = parentRef.collection(collectionName).doc(object.objectId.id);
+        const docRef = parentRef.collection(nameItem.collectionName).doc(object.objectId.id);
         let docSnapshot = await docRef.get();
         if (docSnapshot.exists) {
             await docRef.update(object);
@@ -257,20 +359,30 @@ module.exports.deleteDoc = async function deleteDoc(db, parent, objectId) {
     }
 
     const dataType = objectId['dataType'];
-    const parentRef = choiceParent(dataType, db, parent);
+    // const parentRef = choiceParent(dataType, db, parent);
 
-    let parentDoc = null;
+    // let parentDoc = null;
+    // if (parent) {
+    //     parentDoc = await parent.get();
+    // }
+    // const dbName = parentDoc?.database?.name;
+    let dbName = null
     if (parent) {
-        parentDoc = await parent.get();
+        let parentDoc = await parent.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
     }
-    const dbName = parentDoc?.database?.name;
+    const nameItem = getNameItem(dataType, dbName);
+    const parentRef = await getParentRef(db, parent, nameItem);
 
     try {
         // const dataType = objectId['dataType'];
         // const dbName = parent?.database.name;
-        const collectionName = getCollectionName(dataType, dbName);
-        console.log('collectionName', collectionName);
-        const docRef = parentRef.collection(collectionName).doc(objectId.id);
+        const nameItem = getNameItem(dataType, dbName);
+        console.log('nameItem', nameItem);
+        const docRef = parentRef.collection(nameItem.collectionName).doc(objectId.id);
         await docRef.delete();
         return objectId;
     } catch (error) {
@@ -288,25 +400,35 @@ module.exports.getDocList = async function getDocList(db, parent, requestObject,
         // } else if (!parent) {
         //     console.error("Parent is not defined.");
         //     return null;
-    } else if (!requestObject || !requestObject.id || !requestObject['dataType']) {
+    } else if (!requestObject || !requestObject['dataType']) {
         console.error("Invalid objectId format.");
         return null;
     }
 
     const dataType = requestObject['dataType'];
     // const dataType = objectId['dataType'];
-    const parentRef = choiceParent(dataType, db, parent);
+    // const parentRef = choiceParent(dataType, db, parent);
 
-    let parentDoc = null;
+    // let parentDoc = null;
+    // if (parent) {
+    //     parentDoc = await parent.get();
+    // }
+    // const dbName = parentDoc?.database?.name;
+    let dbName = null
     if (parent) {
-        parentDoc = await parent.get();
+        let parentDoc = await parent.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
     }
-    const dbName = parentDoc?.database?.name;
+    const nameItem = getNameItem(dataType, dbName);
+    const parentRef = await getParentRef(db, parent, nameItem);
 
     try {
         // const dbName = parent?.database.name;
-        const collectionName = getCollectionName(dataType, dbName);
-        const querySnapshot = await parentRef.collection(collectionName).get();
+        // const nameItem = getNameItem(dataType, dbName);
+        const querySnapshot = await parentRef.collection(nameItem.collectionName).get();
 
         const items = [];
         querySnapshot.forEach(doc => {
@@ -336,18 +458,28 @@ module.exports.downloadDocList = async function downloadDocList(db, parent, data
         //     return null;
     }
 
-    const parentRef = choiceParent(dataType, db, parent);
+    // const parentRef = choiceParent(dataType, db, parent);
 
-    let parentDoc = null;
+    // let parentDoc = null;
+    // if (parent) {
+    //     parentDoc = await parent.get();
+    // }
+    // const dbName = parentDoc?.database?.name;
+    let dbName = null
     if (parent) {
-        parentDoc = await parent.get();
+        let parentDoc = await parent.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
     }
-    const dbName = parentDoc?.database?.name;
+    const nameItem = getNameItem(dataType, dbName);
+    const parentRef = await getParentRef(db, parent, nameItem);
 
     try {
         // const dbName = parent?.database.name;
-        const collectionName = getCollectionName(dataType, dbName);
-        const querySnapshot = await parentRef.collection(collectionName).get();
+        // const nameItem = getNameItem(dataType, dbName);
+        const querySnapshot = await parentRef.collection(nameItem.collectionName).get();
 
         const objects = [];
         querySnapshot.forEach(doc => {

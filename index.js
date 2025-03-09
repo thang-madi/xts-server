@@ -27,7 +27,7 @@ const { getRecordSet, updateRecordSet } = require("./methods/records");
 const { createCustomToken } = require("./methods/users");
 const { getFile } = require("./methods/files");
 const { getObjectListBE, callBackendServer } = require("./methods/backend");
-const { getSubscriptionRef, getDatabaseObjectList, getSubscriptionObjectList } = require("./methods/firebase-db");
+const { getSubscriptionRef, getDataSectionRef, getDatabaseObjectList, getSubscriptionObjectList } = require("./methods/firebase-db");
 
 // Main
 const serviceAccountId = 'firebase-adminsdk-fbsvc@fir-b73c8.iam.gserviceaccount.com'
@@ -218,16 +218,23 @@ exports.ping = onRequest(async (request, response) => {
 async function requestProccessing(requestObject, params, claims) {
 
     let responseObject = null
-
     const db = admin.firestore()
-    // console.log('db', db)
-    const subscriptionId = {
+
+    // const subscriptionId = {
+    //     _type: 'XTSObjectId',
+    //     dataType: 'XTSSubscription',
+    //     id: requestObject._dbId || ''
+    // }
+    // const subscription = await getSubscriptionRef(db, subscriptionId)
+    // console.log('subscription', subscription)
+
+    const dataSectionId = {
         _type: 'XTSObjectId',
-        dataType: 'XTSSubscription',
+        dataType: 'XTSDataSection',
         id: requestObject._dbId || ''
     }
-    const subscription = await getSubscriptionRef(db, subscriptionId)
-    console.log('subscription', subscription)
+    const dataSection = await getDataSectionRef(db, dataSectionId)
+    console.log('dataSection', dataSection)
 
     // Nếu như request được gọi từ BE Server thì bỏ qua khối này.
     // Nếu gọi từ Client thì trước tiên sẽ gọi đến BE Server
@@ -302,26 +309,26 @@ async function requestProccessing(requestObject, params, claims) {
             //         conditions.push(condition)
             //     }
             // }
-            responseObject.items = await getObjectList(db, subscription, requestObject, claims)
+            responseObject.items = await getObjectList(db, dataSection, requestObject, claims)
             break;
 
         case 'XTSDownloadObjectListRequest':
             response.setHeader('Content-Encoding', 'gzip');
 
             responseObject = createXTSObject('XTSDownloadObjectListResponse')
-            responseObject.items = await getDownloadObjectList(subscription, requestObject.dataType)
+            responseObject.items = await getDownloadObjectList(dataSection, requestObject.dataType)
             break;
 
         case 'XTSGetObjectsRequest':
 
             if (responseObject) {
                 for (const object of responseObject.objects) {
-                    await updateObject(db, subscription, object)
+                    await updateObject(db, dataSection, object)
                 }
             }
             responseObject = createXTSObject('XTSGetObjectsResponse')
             for (const objectId of requestObject.objectIds) {
-                const newObject = await getObject(db, subscription, objectId)
+                const newObject = await getObject(db, dataSection, objectId)
                 responseObject.objects.push(newObject)
             }
             break;
@@ -330,9 +337,9 @@ async function requestProccessing(requestObject, params, claims) {
 
             if (params.serverCall) {
                 responseObject = createXTSObject('XTSCreateObjectResponse')
-                responseObject.object = await createObject(db, subscription, requestObject.object)
+                responseObject.object = await createObject(db, dataSection, requestObject.object)
             } else if (responseObject) {
-                await createObject(db, subscription, responseObject.object)
+                await createObject(db, dataSection, responseObject.object)
             }
             break;
 
@@ -341,12 +348,12 @@ async function requestProccessing(requestObject, params, claims) {
             if (params.serverCall) {
                 responseObject = createXTSObject('XTSCreateObjectsResponse')
                 for (const object of requestObject.objects) {
-                    const newObject = await createObject(db, subscription, object)
+                    const newObject = await createObject(db, dataSection, object)
                     responseObject.objects.push(newObject)
                 }
             } else if (responseObject) {
                 for (const object of responseObject.objects) {
-                    await createObject(db, subscription, object)
+                    await createObject(db, dataSection, object)
                 }
             }
             break;
@@ -357,14 +364,14 @@ async function requestProccessing(requestObject, params, claims) {
                 responseObject = createXTSObject('XTSUpdateObjectsResponse')
                 console.log('requestObject', requestObject) // requestObject    
                 for (const object of requestObject.objects) {
-                    const updatedObject = await updateObject(db, subscription, object)
+                    const updatedObject = await updateObject(db, dataSection, object)
                     responseObject.objects.push(updatedObject)
                 }
                 console.log('responseObject', responseObject)
             } else if (responseObject) {
                 // console.log('responseObject', responseObject)
                 for (const object of responseObject.objects) {
-                    await updateObject(db, subscription, object)
+                    await updateObject(db, dataSection, object)
                 }
             }
             break;
@@ -374,12 +381,12 @@ async function requestProccessing(requestObject, params, claims) {
             if (params.serverCall) {
                 responseObject = createXTSObject('XTSDeleteObjectsResponse')
                 for (const objectId of requestObject.objectIds) {
-                    const deletedObjectId = await deleteObject(db, subscription, objectId)
+                    const deletedObjectId = await deleteObject(db, dataSection, objectId)
                     responseObject.objects.push(deletedObjectId)
                 }
             } else if (responseObject) {
                 for (const objectId of responseObject.objectIds) {
-                    await deleteObject(db, subscription, objectId)
+                    await deleteObject(db, dataSection, objectId)
                 }
             }
             break;
@@ -388,16 +395,16 @@ async function requestProccessing(requestObject, params, claims) {
         case 'XTSGetRecordSetRequest':
 
             responseObject = createXTSObject('XTSGetRecordSetResponse')
-            responseObject.recordSet = await getRecordSet(db, subscription, requestObject.dataType, requestObject.filter)
+            responseObject.recordSet = await getRecordSet(db, dataSection, requestObject.dataType, requestObject.filter)
             break;
 
         case 'XTSUpdateRecordSetRequest':
 
             if (params.serverCall) {
                 responseObject = createXTSObject('XTSUpdateRecordSetResponse')
-                responseObject.recordSet = await updateRecordSet(db, subscription, requestObject.recordSet)
+                responseObject.recordSet = await updateRecordSet(db, dataSection, requestObject.recordSet)
             } else if (responseObject) {
-                await updateRecordSet(subscription, responseObject.recordSet)
+                await updateRecordSet(dataSection, responseObject.recordSet)
             }
             break;
 
@@ -406,7 +413,7 @@ async function requestProccessing(requestObject, params, claims) {
 
             if (responseObject) {
                 for (const object of responseObject.objects) {
-                    await updateObject(db, subscription, object)
+                    await updateObject(db, dataSection, object)
                 }
             }
 
@@ -414,12 +421,12 @@ async function requestProccessing(requestObject, params, claims) {
             responseObject = createXTSObject('XTSGetFilesResponse')
             if (fileIds) {
                 for (const fileId of requestObject.fileIds) {
-                    const file = await getObject(db, subscription, fileId)
+                    const file = await getObject(db, dataSection, fileId)
                     responseObject.files.push(file)
                 }
             } else {
-                const fileOwnerObject = await getObject(db, subscription, fileOwner)
-                const file = await getObject(db, subscription, fileOwnerObject[attributeName])
+                const fileOwnerObject = await getObject(db, dataSection, fileOwner)
+                const file = await getObject(db, dataSection, fileOwnerObject[attributeName])
                 responseObject.files.push(file)
             }
             break;
@@ -429,12 +436,12 @@ async function requestProccessing(requestObject, params, claims) {
             if (params.serverCall) {
                 responseObject = createXTSObject('XTSDeleteFilesResponse')
                 for (const fileId of requestObject.fileIds) {
-                    const deletedFileId = await deleteObject(db, subscription, fileId)
+                    const deletedFileId = await deleteObject(db, dataSection, fileId)
                     responseObject.fileIds.push(deletedFileId)
                 }
             } else if (responseObject) {
                 for (const fileId of responseObject.fileIds) {
-                    await deleteObject(db, subscription, fileId)
+                    await deleteObject(db, dataSection, fileId)
                 }
             }
             break;
@@ -444,7 +451,7 @@ async function requestProccessing(requestObject, params, claims) {
             if (params.serverCall) {
                 // Không làm gì cả
             } else if (responseObject) {
-                await createObject(db, subscription, responseObject.file)
+                await createObject(db, dataSection, responseObject.file)
             }
             break;
 
@@ -460,7 +467,7 @@ async function requestProccessing(requestObject, params, claims) {
 
                 let count = 0
                 for (const item of responseObject.items) {
-                    await updateObject(db, subscription, item.object)
+                    await updateObject(db, dataSection, item.object)
                     count = count + 1
                 }
                 responseObject = createXTSObject('XTSRefreshObjectListResponse')
@@ -470,7 +477,7 @@ async function requestProccessing(requestObject, params, claims) {
 
         // Firebase
         case 'XTSCreateCustomTokenRequest':     // Sau này có thể bỏ đi, vì dùng XTSSignInRequest
-            responseObject = createCustomToken(subscription, requestObject)
+            responseObject = createCustomToken(dataSection, requestObject)
 
         default:
             break;

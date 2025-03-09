@@ -1,12 +1,22 @@
-const { getCollectionName } = require('./firebase-docs.js');
+const { getNameItem } = require('./firebase-docs.js');
 
-module.exports.getRecordSet = async function getRecordSet(db, subscription, dataType, filter) {
+module.exports.getRecordSet = async function getRecordSet(db, dataSection, dataType, filter) {
+
     const records = [];
-    const dbName = subscription.database.name
-    const collectionName = getCollectionName(dataType, dbName);
+
+    let dbName = null
+    if (dataSection) {
+        let parentDoc = await dataSection.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
+    }
+    // const collectionName = getCollectionName(dataType, dbName);
+    const nameItem = getNameItem(dataType, dbName);
 
     try {
-        const collection = subscription.collection(collectionName);
+        const collection = dataSection.collection(nameItem.collectionName);
         let query = collection;
 
         for (const key in filter) {
@@ -47,18 +57,32 @@ module.exports.getRecordSet = async function getRecordSet(db, subscription, data
 
 // Hiện đang xử lý trường hợp Replace
 // Cần thêm trường hợp Append, nghĩa là chỉ xóa bỏ các record trùng recordKey
-module.exports.updateRecordSet = async function updateRecordSet(db, subscription, recordSet) {
+module.exports.updateRecordSet = async function updateRecordSet(db, dataSection, recordSet) {
+
     const dataType = recordSet.dataType;
     const filter = recordSet.filter;
     const records = recordSet.records;
 
     const updatedRecords = [];
-    const dbName = subscription.database.name
-    const collectionName = getCollectionName(dataType, dbName);
-    console.log('collectionName', collectionName);
+    // const dbName = dataSection.database.name
+
+    // const dataType = object.objectId['dataType'];
+    // const parentRef = choiceParent(dataType, db, parent);
+
+    let dbName = null
+    if (dataSection) {
+        let parentDoc = await dataSection.get();
+        if (parentDoc.exists) {
+            parentDoc = parentDoc.data();
+            dbName = parentDoc?.database?.name;
+        }
+    }
+    // const collectionName = getCollectionName(dataType, dbName);
+    const nameItem = getNameItem(dataType, dbName);
+    console.log('nameItem', nameItem);
 
     try {
-        const collection = subscription.collection(collectionName);
+        const collection = dataSection.collection(nameItem.collectionName);
         let query = collection;
 
         for (const key in filter) {
@@ -90,7 +114,7 @@ module.exports.updateRecordSet = async function updateRecordSet(db, subscription
         const querySnapshot = await query.get();
         // console.log('Number of documents:', querySnapshot.size); // Đoạn mã để in ra số lượng phần tử trong querySnapshot
 
-        const batch = subscription.batch();
+        const batch = db.batch();
         querySnapshot.forEach(doc => {
             // console.log('doc.id', doc.id);
             const docRef = collection.doc(doc.id);
